@@ -9,6 +9,8 @@ import 'firebase_options.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+String currentUserID = "";
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -100,6 +102,19 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<String?> getUserID(String email, String password) async {
+    String? userID;
+    final userRef = FirebaseFirestore.instance.collection('users');
+    final querySnapshot = await userRef
+        .where('email', isEqualTo: email)
+        .where('password', isEqualTo: password)
+        .get();
+    if (querySnapshot.docs.length > 0) {
+      userID = querySnapshot.docs[0].id;
+    }
+    return userID;
+  }
+
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
@@ -110,6 +125,12 @@ class _MyHomePageState extends State<MyHomePage> {
       final success = await checkCredentials(_email, _password);
 
       if (success) {
+        final userRef = FirebaseFirestore.instance.collection('Users');
+        final querySnapshot = await userRef
+            .where('Email', isEqualTo: _email)
+            .where('Password', isEqualTo: _password)
+            .get();
+        currentUserID = querySnapshot.docs.first['UserID'] as String;
         print("Login is successful");
         Navigator.push(
           context,

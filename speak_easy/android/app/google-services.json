@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "519080341275",
+    "project_id": "speakeasy-dcd1f",
+    "storage_bucket": "speakeasy-dcd1f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:519080341275:android:310d0310bc4276f180adbe",
+        "android_client_info": {
+          "package_name": "com.example.speak_easy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "519080341275-sortkb53t88q9jf26sm287f0itrvbp2b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMrJbuwUe3VDo3MoVZMWaKeVH81RVoLNQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "519080341275-sortkb53t88q9jf26sm287f0itrvbp2b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "519080341275-7g1s4odqp7bhs6qj2fabqescdjkjkdhh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.speakEasy"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
