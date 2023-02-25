@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Add this line to import the intl package
 import 'package:speak_easy/conversation.dart';
 import 'package:speak_easy/main.dart';
+
+import 'user_profile_view.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -10,6 +14,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List<Map<String, dynamic>> _conversations = [];
+  late String _imageUrl;
 
   @override
   void initState() {
@@ -51,6 +56,7 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _getConversations() async {
+    _loadImage();
     final userConversations = await FirebaseFirestore.instance
         .collection('Conversations')
         .where('users', arrayContains: currentUserID)
@@ -81,11 +87,41 @@ class _HomeState extends State<Home> {
     });
   }
 
+  Future<void> _loadImage() async {
+// Load the user's profile image from Firebase Storage
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('profile_images/$currentUserID.jpg');
+    try {
+      final url = await ref.getDownloadURL();
+
+      setState(() {
+        _imageUrl = url;
+      });
+    } catch (error) {
+      // If the user has no profile image, set _imageUrl to null
+      setState(() {
+        _imageUrl = "";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Messaging App'),
+        title: Text('Messages'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
+              );
+            },
+            icon: Icon(Icons.person),
+          ),
+        ],
       ),
       body: ListView.builder(
         itemCount: _conversations.length,
@@ -93,17 +129,32 @@ class _HomeState extends State<Home> {
           final conversation = _conversations[index];
           final latestMessage = conversation['latestMessage'] ?? {};
 
+          final formatter = DateFormat('h:mm a');
+          final messageDate = latestMessage['timestamp']?.toDate();
+          final messageDateTime = messageDate != null
+              ? DateTime(messageDate.year, messageDate.month, messageDate.day)
+              : null;
+          final now = DateTime.now();
+          final nowDateTime = DateTime(now.year, now.month, now.day);
+
+          final formattedTime = messageDateTime == nowDateTime
+              ? formatter.format(latestMessage['timestamp'].toDate())
+              : DateFormat('MM/dd/yyyy h:mm a')
+                  .format(latestMessage['timestamp'].toDate());
+
           return FutureBuilder<String?>(
             future: getEmailFromUserID(conversation['name']),
             builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
               if (snapshot.hasData) {
                 return ListTile(
                   leading: CircleAvatar(
-                    child: Text("N"),
+                    backgroundImage: NetworkImage(_imageUrl),
                   ),
                   title: Text(snapshot.data!),
                   subtitle: Text(latestMessage['text'] ?? ''),
-                  trailing: Text(latestMessage['timestamp']?.toString() ?? ''),
+                  trailing: Text(
+                    formattedTime,
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -116,7 +167,7 @@ class _HomeState extends State<Home> {
                   },
                 );
               } else {
-                return CircularProgressIndicator();
+                return Container();
               }
             },
           );
