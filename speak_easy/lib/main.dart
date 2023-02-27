@@ -104,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<String?> getUserID(String email, String password) async {
     String? userID;
-    final userRef = FirebaseFirestore.instance.collection('users');
+    final userRef = FirebaseFirestore.instance.collection('Users');
     final querySnapshot = await userRef
         .where('email', isEqualTo: email)
         .where('password', isEqualTo: password)

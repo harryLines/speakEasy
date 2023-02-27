@@ -42,21 +42,20 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<String?> getEmailFromUserID(String ID) async {
+  Future<String?> getNameFromUserID(String ID) async {
     final userDocsSnapshot = FirebaseFirestore.instance
         .collection('Users')
         .where('UserID', isEqualTo: ID)
         .snapshots();
     final userDocs = await userDocsSnapshot.first;
     if (userDocs.docs.isNotEmpty) {
-      return userDocs.docs.first['Email'];
+      return userDocs.docs.first['Name'];
     } else {
       return null;
     }
   }
 
   Future<void> _getConversations() async {
-    _loadImage();
     final userConversations = await FirebaseFirestore.instance
         .collection('Conversations')
         .where('users', arrayContains: currentUserID)
@@ -64,18 +63,23 @@ class _HomeState extends State<Home> {
 
     List<Future<Map<String, dynamic>>> latestMessagesFutures = [];
 
-    // Get the latest message for each conversation
+    // Get the latest message for each conversation and the profile image URL for the other user
     for (var doc in userConversations.docs) {
       final conversationId = doc.id;
       final otherUserID =
           doc['users'][0] == currentUserID ? doc['users'][1] : doc['users'][0];
 
-      latestMessagesFutures
-          .add(getLatestMessage(conversationId).then((message) {
+      latestMessagesFutures.add(Future.wait([
+        getLatestMessage(conversationId),
+        _getProfileImage(otherUserID),
+      ]).then((results) {
+        final message = results[0];
+        final profileImage = results[1];
         return {
           'name': otherUserID,
           'conversationID': conversationId,
           'latestMessage': message,
+          'profileImage': profileImage,
         };
       }));
     }
@@ -85,6 +89,18 @@ class _HomeState extends State<Home> {
     setState(() {
       _conversations = latestMessages;
     });
+  }
+
+  Future<String?> _getProfileImage(String userID) async {
+    final ref =
+        FirebaseStorage.instance.ref().child('profile_images/$userID.jpg');
+    try {
+      final url = await ref.getDownloadURL();
+      return url;
+    } on FirebaseException catch (error) {
+      // If the user has no profile image, set _imageUrl to null
+      return null;
+    }
   }
 
   Future<void> _loadImage() async {
@@ -143,13 +159,18 @@ class _HomeState extends State<Home> {
                   .format(latestMessage['timestamp'].toDate());
 
           return FutureBuilder<String?>(
-            future: getEmailFromUserID(conversation['name']),
+            future: getNameFromUserID(conversation['name']),
             builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
               if (snapshot.hasData) {
+                final profileImage = conversation['profileImage'];
                 return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(_imageUrl),
-                  ),
+                  leading: profileImage != null && profileImage.isNotEmpty
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(profileImage),
+                        )
+                      : CircleAvatar(
+                          backgroundColor: Colors.blue, // Set a default color
+                        ),
                   title: Text(snapshot.data!),
                   subtitle: Text(latestMessage['text'] ?? ''),
                   trailing: Text(
