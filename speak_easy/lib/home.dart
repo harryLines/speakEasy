@@ -5,6 +5,7 @@ import 'package:intl/intl.dart'; // Add this line to import the intl package
 import 'package:speak_easy/conversation.dart';
 import 'package:speak_easy/main.dart';
 
+import 'new_conversation_page.dart';
 import 'user_profile_view.dart';
 
 class Home extends StatefulWidget {
@@ -14,7 +15,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List<Map<String, dynamic>> _conversations = [];
-  late String _imageUrl;
+  late String _imageUrl = "";
 
   @override
   void initState() {
@@ -72,11 +73,13 @@ class _HomeState extends State<Home> {
       latestMessagesFutures.add(Future.wait([
         getLatestMessage(conversationId),
         _getProfileImage(otherUserID),
+        getNameFromUserID(otherUserID),
       ]).then((results) {
         final message = results[0];
         final profileImage = results[1];
+        final name = results[2];
         return {
-          'name': otherUserID,
+          'name': name,
           'conversationID': conversationId,
           'latestMessage': message,
           'profileImage': profileImage,
@@ -126,71 +129,92 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Messages'),
-        actions: [
+        title: Text('Speak Easy'),
+        actions: <Widget>[
           IconButton(
+            icon: Icon(Icons.person),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => UserProfilePage()),
+                MaterialPageRoute(
+                  builder: (context) => UserProfilePage(),
+                ),
               );
             },
-            icon: Icon(Icons.person),
-          ),
+          )
         ],
       ),
-      body: ListView.builder(
-        itemCount: _conversations.length,
-        itemBuilder: (BuildContext context, int index) {
-          final conversation = _conversations[index];
-          final latestMessage = conversation['latestMessage'] ?? {};
-
-          final formatter = DateFormat('h:mm a');
-          final messageDate = latestMessage['timestamp']?.toDate();
-          final messageDateTime = messageDate != null
-              ? DateTime(messageDate.year, messageDate.month, messageDate.day)
-              : null;
-          final now = DateTime.now();
-          final nowDateTime = DateTime(now.year, now.month, now.day);
-
-          final formattedTime = messageDateTime == nowDateTime
-              ? formatter.format(latestMessage['timestamp'].toDate())
-              : DateFormat('MM/dd/yyyy h:mm a')
-                  .format(latestMessage['timestamp'].toDate());
-
-          return FutureBuilder<String?>(
-            future: getNameFromUserID(conversation['name']),
-            builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
-              if (snapshot.hasData) {
-                final profileImage = conversation['profileImage'];
+      body: Column(
+        children: <Widget>[
+          SizedBox(
+            height: 20.0,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              CircleAvatar(
+                radius: 50.0,
+                backgroundImage:
+                    _imageUrl != null ? NetworkImage(_imageUrl) : null,
+                child: _imageUrl == null ? Icon(Icons.person) : null,
+              ),
+              SizedBox(
+                width: 10.0,
+              ),
+              Text(
+                'Welcome!',
+                style: TextStyle(fontSize: 20.0),
+              )
+            ],
+          ),
+          SizedBox(
+            height: 20.0,
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _conversations.length,
+              itemBuilder: (context, index) {
+                final conversation = _conversations[index];
                 return ListTile(
-                  leading: profileImage != null && profileImage.isNotEmpty
-                      ? CircleAvatar(
-                          backgroundImage: NetworkImage(profileImage),
-                        )
-                      : CircleAvatar(
-                          backgroundColor: Colors.blue, // Set a default color
-                        ),
-                  title: Text(snapshot.data!),
-                  subtitle: Text(latestMessage['text'] ?? ''),
-                  trailing: Text(
-                    formattedTime,
+                  leading: CircleAvatar(
+                    backgroundImage: conversation['profileImage'] != null
+                        ? NetworkImage(conversation['profileImage'])
+                        : null,
+                    child: conversation['profileImage'] == null
+                        ? Icon(Icons.person)
+                        : null,
                   ),
+                  title: Text(conversation['name']),
+                  subtitle: conversation['latestMessage'].isEmpty
+                      ? null
+                      : Text(
+                          conversation['latestMessage']['text'],
+                          overflow: TextOverflow.ellipsis,
+                        ),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ConversationScreen(
-                          conversationId: conversation['conversationID']!,
+                          conversationId: conversation['conversationID'],
                         ),
                       ),
                     );
                   },
                 );
-              } else {
-                return Container();
-              }
-            },
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.messenger),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NewConversationPage(),
+            ),
           );
         },
       ),
